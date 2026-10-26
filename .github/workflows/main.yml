@@ -1,0 +1,61 @@
+name: Healthink CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  backend:
+    name: Backend checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check Python syntax
+        run: |
+          python -m compileall .
+
+      - name: Smoke test backend import
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.append(".")
+          import app
+          print("Backend app imports successfully.")
+          PY
+
+  frontend:
+    name: Frontend smoke test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Serve frontend and verify page loads
+        run: |
+          cd frontend
+          python -m http.server 3000 >/tmp/healthink_frontend.log 2>&1 &
+          sleep 5
+          curl -I http://localhost:3000/index.html
